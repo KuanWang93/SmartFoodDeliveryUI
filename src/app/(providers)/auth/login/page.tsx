@@ -6,6 +6,7 @@ import { useAppDispatch } from '../../../../store/hooks'
 import { login as loginAction } from '../../../../store/slices/authSlice'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import apiClient from '../../../../services/apiClient'
+import { useTheme } from 'next-themes'
 
 const roles = ['client', 'merchant', 'rider'] as const
 type Role = typeof roles[number]
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const dispatch = useAppDispatch()
+  const { theme } = useTheme()
 
   const [mounted, setMounted] = useState(false)
   const [role, setRole] = useState<Role>((searchParams.get('role') as Role) || 'client')
@@ -41,8 +43,14 @@ export default function LoginPage() {
         role,
         accessToken: payload.accessToken,
         refreshToken: payload.refreshToken,
+        image: payload.image || '',
+        username: payload.username,
       }))
-      router.push(`/${role}/dashboard`)
+      if (payload.needsProfileCompletion) {
+        router.push(`/${role}/profile`)
+      } else {
+        router.push(`/${role}/dashboard`)
+      }
     } catch (err) {
       console.error('Password login error', err)
     }
@@ -65,8 +73,14 @@ export default function LoginPage() {
         role,
         accessToken: payload.accessToken,
         refreshToken: payload.refreshToken,
+        image: payload.image || '',
+        username: payload.username,
       }))
-      router.push(`/${role}/dashboard`)
+      if (payload.needsProfileCompletion) {
+        router.push(`/${role}/profile`)
+      } else {
+        router.push(`/${role}/dashboard`)
+      }
     } catch (err) {
       console.error('Google OAuth2 login error', err)
     }
@@ -146,7 +160,7 @@ export default function LoginPage() {
             <GoogleLogin
               onSuccess={handleGoogleLoginSuccess}
               onError={() => console.error('Google OAuth2 login failed')}
-              useOneTap
+              theme={theme === 'dark' ? 'filled_black' : 'outline'}
             />
           </div>
         )}

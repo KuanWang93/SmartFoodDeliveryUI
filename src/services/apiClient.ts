@@ -1,35 +1,42 @@
-import axios from 'axios'
+import axios, { AxiosResponse } from 'axios'
 import { store } from '../store'
 import type { RootState } from '../store'
 
-// 创建 axios 实例
+interface ApiResponse<T = any> {
+  code: number
+  msg: string
+  data: T
+}
+
 const apiClient = axios.create({
   baseURL: '/api',
 })
 
-// 请求拦截器：自动加上两个 Token
+// 请求拦截器
 apiClient.interceptors.request.use(config => {
-  // 如果是登录/注册相关的 auth 接口，就跳过
-  // config.url 可能是 '/auth/login' 或 '/api/auth/login'，请根据你实际调用时的路径调整
   const url = config.url ?? ''
-  if (url.startsWith('/api/auth/') || url.startsWith('/auth/')) {
+  if (url.startsWith('/auth/')) {
     return config
   }
-  // 否则，从 Redux store 里拿当前的 auth 状态
-  const state = store.getState() as RootState
-  const { accessToken, refreshToken } = state.auth
-
-  // 确保 headers 对象存在
+  const { accessToken, refreshToken } = (store.getState() as RootState).auth
   config.headers = config.headers ?? {}
-
-  if (accessToken) {
-    config.headers['Authorization'] = `Bearer ${accessToken}`
-  }
-  if (refreshToken) {
-    config.headers['X-Refresh-Token'] = `Bearer ${refreshToken}`
-  }
-
+  if (accessToken) config.headers['Authorization'] = `Bearer ${accessToken}`
+  if (refreshToken) config.headers['X-Refresh-Token'] = `Bearer ${refreshToken}`
   return config
 })
+
+// 响应拦截器
+apiClient.interceptors.response.use(
+  (response: AxiosResponse<ApiResponse>) => {
+    const body = response.data
+    if (body.code !== 1) {
+      // 业务错误，扔到 catch
+      return Promise.reject(new Error(body.msg ?? 'Unknown error'))
+    }
+    // 成功：不要拆 data，直接返回整个 AxiosResponse
+    return response
+  },
+  error => Promise.reject(error)
+)
 
 export default apiClient
