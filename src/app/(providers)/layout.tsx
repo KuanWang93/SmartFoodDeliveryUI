@@ -1,4 +1,3 @@
-// src/app/(providers)/layout.tsx
 'use client'
 
 import React from 'react'
@@ -25,12 +24,17 @@ export default function ProvidersLayout({ children }: { children: React.ReactNod
       >
         <Provider store={store}>
           <PersistGate loading={null} persistor={persistor}>
-            {/* Only show theme toggle on non-home pages */}
-            {showToggle && <ThemeToggle />}
-            {children}
+            <div className="relative min-h-screen">
+              {showToggle && (
+                <div className="absolute top-4 right-4 z-50">
+                  <ThemeToggle />
+                </div>
+              )}
+              {children}
+            </div>
           </PersistGate>
         </Provider>
       </ThemeProvider>
-    </GoogleOAuthProvider>  
+    </GoogleOAuthProvider>
   )
 }

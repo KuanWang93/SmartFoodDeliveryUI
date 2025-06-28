@@ -9,16 +9,16 @@ const nextConfig: NextConfig = {
         destination: `${apiBase}/:path*`,
       },
       {
-        source: '/api/client/:path*',
-        destination: `${apiBase}/client/:path*`,
+        source: '/api/profile',
+        destination: `${apiBase}/profile`,
       },
       {
-        source: '/api/merchant/:path*',
-        destination: `${apiBase}/merchant/:path*`,
+        source: '/api/upload',
+        destination: `${apiBase}/upload`,
       },
       {
-        source: '/api/rider/:path*',
-        destination: `${apiBase}/rider/:path*`,
+        source: '/api/:group(client|merchant|rider)/:path*',
+        destination: `${apiBase}/:group/:path*`,
       },
     ]
   },
