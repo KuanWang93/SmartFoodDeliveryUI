@@ -189,10 +189,7 @@ export default function MerchantProfilePage() {
                 <input name="state" value={form.state} onChange={handleChange} required className="w-full p-3 border rounded" />
               </Field>
               <Field 
-                label={
-                  <>
-                    邮编
-                  </>}
+                label = {<span className="block md:ml-2">邮编</span>}
               >
                 <input name="zipcode" value={form.zipcode} onChange={handleChange} required className="w-full p-3 border rounded" />
               </Field>
@@ -246,10 +243,11 @@ export default function MerchantProfilePage() {
 interface FieldProps {
   label: ReactNode
   children: ReactNode
+  className?: string 
 }
-export function Field({ label, children }: FieldProps) {
+export function Field({ label, children, className = "" }: FieldProps) {
   return (
-    <div>
+    <div className={className}>
       <label className="block text-sm font-medium mb-1">
         {label}
       </label>
