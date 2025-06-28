@@ -7,6 +7,7 @@ import { login as loginAction } from '../../../../store/slices/authSlice'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import apiClient from '../../../../services/apiClient'
 import { useTheme } from 'next-themes'
+import toast from 'react-hot-toast'
 
 const roles = ['client', 'merchant', 'rider'] as const
 type Role = typeof roles[number]
@@ -45,6 +46,7 @@ export default function LoginPage() {
         refreshToken: payload.refreshToken,
         image: payload.image || '',
         username: payload.username,
+        needsProfileCompletion: payload.needsProfileCompletion,
       }))
       if (payload.needsProfileCompletion) {
         router.push(`/${role}/profile`)
@@ -53,6 +55,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error('Password login error', err)
+      toast.error('登录失败，请重试')
     }
   }
 
@@ -75,6 +78,7 @@ export default function LoginPage() {
         refreshToken: payload.refreshToken,
         image: payload.image || '',
         username: payload.username,
+        needsProfileCompletion: payload.needsProfileCompletion,
       }))
       if (payload.needsProfileCompletion) {
         router.push(`/${role}/profile`)
@@ -83,6 +87,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error('Google OAuth2 login error', err)
+      toast.error('登录失败，请重试')
     }
   }
 

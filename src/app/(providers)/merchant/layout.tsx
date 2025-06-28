@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Home, Tag, Utensils, ClipboardList, User, ChevronLeft, ChevronRight, BarChart2, LogOut  } from 'lucide-react';
 import apiClient from '../../../services/apiClient';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout as logoutAction, selectUsername } from '../../../store/slices/authSlice';
+import { logout as logoutAction, selectUsername,selectNeedsProfileCompletion } from '../../../store/slices/authSlice';
 import toast from 'react-hot-toast';
 
 const navItems = [
@@ -27,6 +27,19 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
   const router = useRouter();
   const dispatch = useDispatch();
   const menuRef = useRef<HTMLDivElement>(null);
+  const needsProfileCompletion = useSelector(selectNeedsProfileCompletion);
+
+  // ——【1】路由守卫：资料未完成就跳 profile
+  useEffect(() => {
+    if (
+      needsProfileCompletion === true &&                     // 确认「未完成」
+      !pathname.startsWith("/merchant/profile")             // 且不在 profile 页面
+    ) {
+      toast.error("请先完善商户资料");
+      // 用 replace 防止用户按后退再回到这个页面
+      router.replace("/merchant/profile");
+    }
+  }, [needsProfileCompletion, pathname, router]);
 
   // Get current page name
   const currentNav = navItems.find(item => pathname.startsWith(item.href));
@@ -92,6 +105,14 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
     } catch (e) {
       console.warn('Logout API failed', e);
     } */
+    if (storeOpen) {
+      try {
+        await apiClient.post('/merchant/status/0');
+      } catch (e: any) {
+        console.warn('关闭店铺状态失败', e);
+        // 可选：show toast 提示用户
+      }
+    }
     dispatch(logoutAction());
     router.push('/auth/login');
   };
@@ -110,16 +131,32 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
           </button>
         </div>
         <nav className="mt-6">
-          {navItems.map(({ label, href, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center px-4 py-3 hover:bg-gray-700 ${pathname.startsWith(href) ? 'bg-gray-700' : ''}`}
-            >
-              <Icon size={20} />
-              {!collapsed && <span className="ml-3">{label}</span>}
-            </Link>
-          ))}
+          {navItems.map(({ label, href, icon: Icon }) => {
+              // ——【2】侧边栏里禁用除 profile 以外的链接
+              const disabled =
+                needsProfileCompletion === true && href !== "/merchant/profile";
+
+              return (
+                <Link
+                  key={href}
+                  href={disabled ? "#" : href}
+                  onClick={(e) => {
+                    if (disabled) {
+                      e.preventDefault();
+                      toast("请先完善商户资料");
+                    }
+                  }}
+                  className={`flex items-center px-4 py-3 hover:bg-gray-700 
+                    ${
+                      pathname.startsWith(href) ? "bg-gray-700" : ""
+                    } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <Icon size={20} />
+                  {!collapsed && <span className="ml-3">{label}</span>}
+                </Link>
+              );
+            })
+          }
         </nav>
       </aside>
 
@@ -132,10 +169,18 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
             {storeOpen !== null && (
               <>
                 <span>
-                  Merchant Status: <span className={`${storeOpen ? 'text-green-600' : 'text-red-600'} font-semibold`}>{storeOpen ? '营业中' : '未营业'}</span>
+                  Merchant Status:{" "} <span className={`${storeOpen ? 'text-green-600' : 'text-red-600'} font-semibold`}>{storeOpen ? '营业中' : '未营业'}</span>
                 </span>
-                <button onClick={toggleStoreStatus} className="px-3 py-1 bg-blue-600 text-white rounded">
-                  {storeOpen ? '关闭营业' : '开启营业'}
+                <button
+                  onClick={toggleStoreStatus}
+                  disabled={needsProfileCompletion === true}
+                  className="
+                    px-3 py-1 rounded
+                    bg-blue-600 text-white hover:bg-blue-700
+                    disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed
+                  "
+                >
+                  {storeOpen ? "关闭营业" : "开启营业"}
                 </button>
               </>
             )}

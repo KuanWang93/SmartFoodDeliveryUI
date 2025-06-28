@@ -177,7 +177,15 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-pink-100 px-4 py-10">
       <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-10">
-        <h2 className="text-3xl font-extrabold text-indigo-700 mb-4 text-center tracking-tight">Register Account</h2>
+        <div className="relative flex justify-center items-center mb-4">
+          <button
+            className="absolute left-0 text-blue-600 hover:underline"
+            onClick={() => router.back()}
+          >
+            ← 返回
+          </button>
+          <h2 className="text-3xl font-extrabold text-indigo-700 tracking-tight">Register Account</h2>
+        </div>
         <div className="flex justify-center gap-4 mb-6">
           {roles.map(r => (
             <button
