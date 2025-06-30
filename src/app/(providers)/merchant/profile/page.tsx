@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import apiClient from '../../../../services/apiClient'
 import toast from 'react-hot-toast'
@@ -54,7 +54,7 @@ export default function MerchantProfilePage() {
           merchantDescription: data.merchantDescription,
           merchantImage: data.merchantImage,
           merchantType: data.merchantType,
-          merchantSocialMedia: data.merchantSocialMedia.split(',').filter(Boolean),
+          merchantSocialMedia: (data.merchantSocialMedia || '').split(',').filter(Boolean),
           merchantOpeningHours: data.merchantOpeningHours || {},
           createTime: res.data.data.createTime,
           updateTime: res.data.data.updateTime,
@@ -157,22 +157,42 @@ export default function MerchantProfilePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1 font-semibold">商户名称*</label>
+                <label className="block mb-1 font-semibold"><span className="text-red-500 relative top-0.5 inline-block">*</span> 商户名称</label>
                 <input name="merchantName" value={form.merchantName} onChange={handleChange} required className="w-full p-3 border rounded" />
               </div>
               <div>
-                <label className="block mb-1 font-semibold">联系电话*</label>
+                <label className="block mb-1 font-semibold"><span className="text-red-500 relative top-0.5 inline-block">*</span> 联系电话</label>
                 <input name="phone" value={form.phone} onChange={handleChange} required className="w-full p-3 border rounded" />
               </div>
             </div>
             <div>
-              <label className="block mb-1 font-semibold">地址*</label>
+              <label className="block mb-1 font-semibold"><span className="text-red-500 relative top-0.5 inline-block">*</span> 地址</label>
               <input name="address" value={form.address} onChange={handleChange} required className="w-full p-3 border rounded" />
             </div>
             <div className="grid md:grid-cols-3 gap-4">
-              <Field label="城市*"><input name="city" value={form.city} onChange={handleChange} required className="w-full p-3 border rounded" /></Field>
-              <Field label="省/州*"><input name="state" value={form.state} onChange={handleChange} required className="w-full p-3 border rounded" /></Field>
-              <Field label="邮编"><input name="zipcode" value={form.zipcode} onChange={handleChange} required className="w-full p-3 border rounded" /></Field>
+              <Field 
+                label={
+                  <>
+                    <span className="text-red-500 relative top-1 inline-block mr-1">* </span> 
+                    城市
+                  </>}
+              >
+                <input name="city" value={form.city} onChange={handleChange} required className="w-full p-3 border rounded" />
+              </Field>
+              <Field 
+                label={
+                  <>
+                    <span className="text-red-500 relative top-1 inline-block  mr-1">* </span> 
+                    省/州
+                  </>}
+              >
+                <input name="state" value={form.state} onChange={handleChange} required className="w-full p-3 border rounded" />
+              </Field>
+              <Field 
+                label = {<span className="block md:ml-2">邮编</span>}
+              >
+                <input name="zipcode" value={form.zipcode} onChange={handleChange} required className="w-full p-3 border rounded" />
+              </Field>
             </div>
             <div>
               <label className="block mb-1 font-semibold">商户类型</label>
@@ -183,7 +203,7 @@ export default function MerchantProfilePage() {
               <textarea name="merchantDescription" value={form.merchantDescription} onChange={handleChange} className="w-full p-3 border rounded" rows={3} />
             </div>
             <div>
-              <label className="block mb-1 font-semibold">营业时间*</label>
+              <label className="block mb-1 font-semibold"><span className="text-red-500 relative top-0.5 inline-block">*</span> 营业时间</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => (
                   <div key={day} className="flex items-center gap-2">
@@ -220,12 +240,21 @@ export default function MerchantProfilePage() {
 }
 
 // 通用 Field 组件
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+interface FieldProps {
+  label: ReactNode
+  children: ReactNode
+  className?: string 
+}
+export function Field({ label, children, className = "" }: FieldProps) {
   return (
-    <div>
-      <label className="block text-sm font-medium mb-1">{label}</label>
+    <div className={className}>
+      <label className="block text-sm font-medium mb-1">
+        {label}
+      </label>
       {children}
     </div>
   )
 }
+
+
 

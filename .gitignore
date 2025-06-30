@@ -14,7 +14,7 @@
 /coverage
 
 # next.js
-/.next/
+.next/
 /out/
 
 # production
@@ -23,6 +23,9 @@
 # misc
 .DS_Store
 *.pem
+Thumbs.db
+*~
+*.swp
 
 # debug
 npm-debug.log*
@@ -39,3 +42,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project

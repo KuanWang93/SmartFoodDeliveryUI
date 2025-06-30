@@ -44,6 +44,18 @@ interface OrderDetailVO {
   statusLogs: OrderStatusLogVO[];
 }
 
+// 状态码映射，请根据实际业务枚举进行调整
+const statusMap: Record<number, string> = {
+  0: "待支付",
+  1: "已支付",
+  2: "准备中",
+  3: "已就绪",
+  4: "待取餐",
+  5: "配送中",
+  6: "已完成",
+  7: "已取消"
+};
+
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const router = useRouter();
@@ -178,7 +190,7 @@ export default function OrderDetailPage() {
                 </p>
                 <p className="mt-1">
                   <strong>
-                    {log.fromStatus} → {log.toStatus}
+                    {statusMap[log.fromStatus] ?? log.fromStatus} → {statusMap[log.toStatus] ?? log.toStatus}
                   </strong>
                 </p>
                 <p className="mt-1 text-gray-700">
