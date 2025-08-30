@@ -8,7 +8,6 @@ import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import apiClient from '@/services/apiClient'
 import { useTheme } from 'next-themes'
 import toast from 'react-hot-toast'
-import { setAddressList } from '@/store/slices/addressSlice'
 
 const roles = ['client', 'merchant', 'rider'] as const
 type Role = typeof roles[number]
@@ -49,20 +48,23 @@ export default function LoginPage() {
         username: payload.username,
         needsProfileCompletion: payload.needsProfileCompletion,
       }))
-      if (payload.needsProfileCompletion) {
-        router.push(`/${role}/profile`)
-      } else {
-        if (role === "client") {
-          router.push(`/${role}/browse`)
-        } else {
-          router.push(`/${role}/dashboard`)
-        }
-      }
+      // 路由映射表，易扩展
+      const roleHome = {
+        client: '/client/browse',
+        merchant: '/merchant/dashboard',
+        rider: '/rider/dashboard',
+      };
+
+      router.push(
+        payload.needsProfileCompletion
+          ? `/${role}/profile`
+          : roleHome[role] || '/'
+      );
     } catch (err) {
-      console.error('Password login error', err)
-      toast.error('登录失败，请重试')
+      console.error('Password login error', err);
+      toast.error('登录失败，请重试');
     }
-  }
+  };
 
   const handleGoogleLoginSuccess = async (credentialResponse: CredentialResponse) => {
     const idToken = credentialResponse.credential

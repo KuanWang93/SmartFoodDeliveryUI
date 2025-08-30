@@ -3,25 +3,28 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Home, Tag, Utensils, ClipboardList, User, ChevronLeft, ChevronRight, BarChart2, LogOut  } from 'lucide-react';
-import apiClient from '../../../services/apiClient';
+import { Home, ClipboardList, Truck, History, BarChart2, User, ChevronLeft, ChevronRight, LogOut, MapPlusIcon } from 'lucide-react';
+import apiClient from '@/services/apiClient';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout as logoutAction, selectUsername,selectNeedsProfileCompletion, selectAuth } from '@/store/slices/authSlice';
+import { logout as logoutAction, selectUsername, selectNeedsProfileCompletion, selectAuth } from '@/store/slices/authSlice';
 import toast from 'react-hot-toast';
-import { setLastMessage, setIsConnected } from '@/store/slices/merchantWebSocketSlice';
+import { setLastMessage, setIsConnected } from '@/store/slices/riderWebSocketSlice';
+import { setLocation, clearLocation } from "@/store/slices/locationSlice";
 
 const navItems = [
-  { label: 'Dashboard', href: '/merchant/dashboard', icon: Home },
-  { label: 'Category Management', href: '/merchant/category', icon: Tag },
-  { label: 'Dish Management', href: '/merchant/dish', icon: Utensils },
-  { label: 'Order Management', href: '/merchant/order', icon: ClipboardList },
-  { label: 'Statistics', href: '/merchant/statistics', icon: BarChart2 },
-  { label: 'Profile', href: '/merchant/profile', icon: User },
+  { label: '工作台', href: '/rider/dashboard', icon: Home },
+  { label: '地图', href: '/rider/map', icon: MapPlusIcon },
+  { label: '待抢订单', href: '/rider/available', icon: ClipboardList },
+  { label: '配送中订单', href: '/rider/delivering', icon: Truck },
+  { label: '历史订单', href: '/rider/history', icon: History },
+  { label: '收入统计', href: '/rider/statistics', icon: BarChart2 },
+  { label: '个人资料', href: '/rider/profile', icon: User },
 ];
 
-export default function MerchantLayout({ children }: { children: React.ReactNode }) {
+export default function RiderLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [storeOpen, setStoreOpen] = useState<boolean | null>(null);
+  const [riderStatus, setRiderStatus] = useState<number | null>(null); // 0: 未激活, 1: 可接单
+  const [statusLoading, setStatusLoading] = useState(true);
   const auth = useSelector(selectAuth);
   const username = useSelector(selectUsername);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,11 +36,11 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
   const accessToken = auth.accessToken;
   const wsRef = useRef<WebSocket | null>(null);
 
-  // 建立 websocket 连接
+  // WebSocket连接
   useEffect(() => {
     if (!accessToken) return;
-    if (wsRef.current) return; // 已有 socket，不重复创建
-    const ws = new WebSocket(`ws://localhost:8080/ws/merchant?accessToken=${accessToken}`);
+    if (wsRef.current) return;
+    const ws = new WebSocket(`ws://localhost:8080/ws/rider?accessToken=${accessToken}`);
     wsRef.current = ws;
 
     ws.onopen = () => dispatch(setIsConnected(true));
@@ -51,7 +54,7 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
     };
     ws.onclose = () => {
       wsRef.current = null;
-      dispatch(setIsConnected(false));  
+      dispatch(setIsConnected(false));
     };
     return () => {
       ws.close();
@@ -60,63 +63,74 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
     };
   }, [accessToken, dispatch]);
 
-  // ——【1】路由守卫：资料未完成就跳 profile
+  // 路由守卫：未完善资料先跳转profile
   useEffect(() => {
     if (
-      needsProfileCompletion === true &&                     // 确认「未完成」
-      !pathname.startsWith("/merchant/profile")             // 且不在 profile 页面
+      needsProfileCompletion === true &&
+      !pathname.startsWith("/rider/profile")
     ) {
-      toast.error("请先完善商户资料");
-      // 用 replace 防止用户按后退再回到这个页面
-      router.replace("/merchant/profile");
+      toast.error("请先完善骑手资料");
+      router.replace("/rider/profile");
     }
   }, [needsProfileCompletion, pathname, router]);
 
-  // Get current page name
+  // 当前页面名
   const currentNav = navItems.find(item => pathname.startsWith(item.href));
   const pageName = currentNav ? currentNav.label : '';
 
-  // 进入非订单详情页面时删除状态，从订单详情页面返回时保留状态
-  const prevPathRef = useRef<string | null>(null);
+  // 请求骑手当前状态
   useEffect(() => {
-    const prev = prevPathRef.current;
-    const cur = pathname;
-
-    // 匹配 /merchant/order/[orderId]
-    const isDetail = /^\/merchant\/order\/[^\/]+$/.test(cur);
-    const wasDetail = prev !== null && /^\/merchant\/order\/[^\/]+$/.test(prev);
-
-    // 只有「既不是从详情页来」也「不是进入详情页」时，才清掉 tab
-    if (!wasDetail && !isDetail) {
-      sessionStorage.removeItem("dashboardCurrentTab");
-      sessionStorage.removeItem("orderCurrentTab");
-    }
-    prevPathRef.current = cur;
-  }, [pathname]);
-
-  // Fetch initial store status
-  useEffect(() => {
-    const fetchStatus = async () => {
+    async function fetchStatus() {
       try {
-        const res = await apiClient.get('/merchant/status')
-        setStoreOpen(res.data.data === 1)
+        const res = await apiClient.get('/rider/status'); // 建议返回 { data: 1 } 代表可接单
+        setRiderStatus(res.data.data);
       } catch (e) {
-        console.error('Fetch store status failed', e)
+        setRiderStatus(0);
+      } finally {
+        setStatusLoading(false);
       }
     }
-    fetchStatus()
-  }, [])
+    fetchStatus();
+  }, []);
 
-  const toggleStoreStatus = async () => {
+  // 切换骑手状态
+  const toggleRiderStatus = async () => {
+    if (riderStatus === null) return;
+    setStatusLoading(true);
     try {
-      const newStatus = storeOpen ? 0 : 1
-      const res = await apiClient.post(`/merchant/status/${newStatus}`)
-      toast.success(res.data.msg)
-      setStoreOpen(newStatus === 1)
+      const newStatus = riderStatus === 1 ? 0 : 1;
+      const res = await apiClient.post(`/rider/status/${newStatus}`); // 0:未激活, 1:激活
+      setRiderStatus(newStatus);
+      toast.success(res.data.msg || (newStatus === 1 ? '已开启接单' : '已暂停接单'));
     } catch (err: any) {
-      toast.error(err.message)
+      toast.error(err.message);
     }
-  }
+    setStatusLoading(false);
+  };
+
+  // 如果是可接单状态，自动上报当前定位
+  useEffect(() => {
+    let watchId: number | null = null;
+    function handlePosition(pos: GeolocationPosition) {
+      const { latitude, longitude } = pos.coords;
+      dispatch(setLocation({ lat: latitude, lng: longitude })); // 先写redux
+      apiClient.post('/rider/location', { latitude, longitude }); // 不用await，直接“发请求”
+    }
+    if (riderStatus === 1 && navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        handlePosition,
+        err => toast.error('定位失败，请检查浏览器权限'),
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+      );
+    } else {
+      dispatch(clearLocation());
+    }
+    return () => {
+      if (watchId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [riderStatus, dispatch]);  
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -131,21 +145,16 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
 
   // 登出
   const handleLogout = async () => {
-    // 无状态jwt，无需请求后端删除token
-    /* try {
-      await apiClient.post('/auth/logout');
-    } catch (e) {
-      console.warn('Logout API failed', e);
-    } */
-    if (storeOpen) {
+    if (riderStatus === 1) {
       try {
-        await apiClient.post('/merchant/status/0');
+        await apiClient.post('/rider/status/0');
       } catch (e: any) {
-        console.warn('关闭店铺状态失败', e);
+        console.warn('关闭骑手接单失败', e);
         // 可选：show toast 提示用户
       }
     }
     dispatch(logoutAction());
+    dispatch(clearLocation());
     wsRef.current?.close();
     dispatch(setIsConnected(false));
     router.push('/auth/login');
@@ -154,22 +163,19 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex h-screen">
       <aside className={`bg-gray-800 text-white transition-all duration-200 ${collapsed ? 'w-20' : 'w-72'}`}>
-        {/* Logo, Title and Toggle */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center">
             <Image src="/images/sf_logo.png" alt="SmartFoodDelivery Logo" width={32} height={32} />
             {!collapsed && <span className="ml-2 text-xl font-bold">SmartFoodDelivery</span>}
           </div>
           <button onClick={() => setCollapsed(!collapsed)} className="focus:outline-none">
-            {collapsed ? <ChevronRight size={20}/> : <ChevronLeft size={20}/>}  
+            {collapsed ? <ChevronRight size={20}/> : <ChevronLeft size={20}/>}
           </button>
         </div>
         <nav className="mt-6">
           {navItems.map(({ label, href, icon: Icon }) => {
-              // ——【2】侧边栏里禁用除 profile 以外的链接
               const disabled =
-                needsProfileCompletion === true && href !== "/merchant/profile";
-
+                needsProfileCompletion === true && href !== "/rider/profile";
               return (
                 <Link
                   key={href}
@@ -177,13 +183,12 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
                   onClick={(e) => {
                     if (disabled) {
                       e.preventDefault();
-                      toast("请先完善商户资料");
+                      toast("请先完善骑手资料");
                     }
                   }}
                   className={`flex items-center px-4 py-3 hover:bg-gray-700 
-                    ${
-                      pathname.startsWith(href) ? "bg-gray-700" : ""
-                    } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                    ${pathname.startsWith(href) ? "bg-gray-700" : ""}
+                    ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   <Icon size={20} />
                   {!collapsed && <span className="ml-3">{label}</span>}
@@ -199,25 +204,33 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
         {/* Navbar */}
         <header className="flex justify-between items-center bg-white py-6 px-8 shadow pr-20">
           <h2 className="text-2xl font-bold">{pageName}</h2>
-          <div className="flex items-center space-x-4">
-            {storeOpen !== null && (
-              <>
-                <span>
-                  Merchant Status:{" "} <span className={`${storeOpen ? 'text-green-600' : 'text-red-600'} font-semibold`}>{storeOpen ? '营业中' : '未营业'}</span>
-                </span>
-                <button
-                  onClick={toggleStoreStatus}
-                  disabled={needsProfileCompletion === true}
-                  className="
-                    px-3 py-1 rounded
-                    bg-blue-600 text-white hover:bg-blue-700
-                    disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed
-                  "
-                >
-                  {storeOpen ? "关闭营业" : "开启营业"}
-                </button>
-              </>
-            )}
+          <div className="flex items-center space-x-6">
+            {/* 状态栏和切换按钮 */}
+            <div>
+              {statusLoading ? (
+                <span className="text-gray-500">状态加载中…</span>
+              ) : (
+                <>
+                  <span>
+                    接单状态:{" "}
+                    <span className={riderStatus === 1 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                      {riderStatus === 1 ? '可接单' : '未激活'}
+                    </span>
+                  </span>
+                  <button
+                    onClick={toggleRiderStatus}
+                    disabled={statusLoading}
+                    className={`
+                      px-3 py-1 ml-4 rounded
+                      ${riderStatus === 1 ? 'bg-gray-300 text-gray-600 hover:bg-gray-400' : 'bg-blue-600 text-white hover:bg-blue-700'}
+                      disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed
+                    `}
+                  >
+                    {riderStatus === 1 ? '暂停接单' : '开始接单'}
+                  </button>
+                </>
+              )}
+            </div>
             {/* 用户名下拉 */}
             <div className="relative" ref={menuRef}>
               <button
@@ -235,7 +248,6 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
                 )}
                 <span className="truncate max-w-xs">{username}</span>
               </button>
-
               {menuOpen && (
                 <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-10 min-w-max">
                   <button
@@ -244,13 +256,12 @@ export default function MerchantLayout({ children }: { children: React.ReactNode
                   >
                     <LogOut size={16} />
                     <span>退出登录</span>
-                  </button>  
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </header>
-
         <main className="flex-1 bg-gray-100 p-6 overflow-auto">
           {children}
         </main>

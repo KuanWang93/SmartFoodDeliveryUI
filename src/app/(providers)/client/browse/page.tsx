@@ -31,6 +31,15 @@ interface FetchResult {
   lastId: number;
 }
 
+// 推荐菜品类型
+interface RecommendItemVO {
+  dishId: number;
+  dishName: string;
+  imageUrl: string;
+  merchantId: number;
+  merchantUrl: string;
+}
+
 const PAGE_SIZE = 5;
 const SORT_OPTIONS = [
   { label: 'Distance', value: 'distance' },
@@ -52,6 +61,14 @@ export default function BrowsePage() {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [coords, setCoords] = useState<{lat: number; lng: number} | null>(null);
   const didInitRef = useRef(false);
+  const [recommendList, setRecommendList] = useState<RecommendItemVO[]>([]);
+
+    // 获取推荐菜品
+    useEffect(() => {
+      apiClient.get('/client/recommend/dishes').then(res => {
+        setRecommendList(res.data.data || []);
+      });
+    }, []);
 
   // get user location
   useEffect(() => {
@@ -123,6 +140,31 @@ export default function BrowsePage() {
 
   return (
     <div className="p-4 w-full">
+      {/* 顶部推荐菜品 */}
+      {recommendList.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-2">为你推荐</h2>
+          <div className="flex gap-3 overflow-x-auto">
+            {recommendList.map(dish => (
+              <div
+                key={dish.dishId}
+                className="min-w-[180px] bg-white rounded-xl shadow hover:scale-105 transition cursor-pointer"
+                onClick={() => router.push(`/client/browse/${dish.merchantId}`)}
+              >
+                <img
+                  src={dish.imageUrl || '/no-image.png'}
+                  alt={dish.dishName}
+                  className="w-full h-28 object-cover rounded-t-xl"
+                />
+                <div className="p-2">
+                  <div className="font-medium truncate">{dish.dishName}</div>
+                  <div className="text-xs text-gray-400">来自商家 #{dish.merchantId}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-end mb-4">
         <h1 className="text-lg font-medium mr-3">Sorted by:</h1>
         <Select value={sortField} onValueChange={setSortField}>

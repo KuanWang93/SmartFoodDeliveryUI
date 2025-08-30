@@ -6,13 +6,17 @@ import orderReducer from './slices/orderSlice'
 import addressReducer from './slices/addressSlice'
 import merchantReducer from './slices/merchantSlice'
 import merchantWebSocketReucer from './slices/merchantWebSocketSlice'
+import riderWebSocketReucer from './slices/riderWebSocketSlice'
+import locationReducer from "./slices/locationSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
   order: orderReducer,
   address: addressReducer,
   merchant: merchantReducer,
-  merchantWebSocket: merchantWebSocketReucer
+  merchantWebSocket: merchantWebSocketReucer,
+  riderWebSocket: riderWebSocketReucer,
+  location: locationReducer,
 })
 
 const persistConfig = {

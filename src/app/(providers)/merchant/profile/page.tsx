@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import apiClient from '../../../../services/apiClient'
 import toast from 'react-hot-toast'
 import { useDispatch } from 'react-redux'
-import { updateImage } from '@/store/slices/authSlice'
+import { setNeedsProfileCompletion, updateImage } from '@/store/slices/authSlice'
 
 interface ProfileForm {
   username: string
@@ -124,6 +124,7 @@ export default function MerchantProfilePage() {
       const payload = { ...form, merchantSocialMedia: form.merchantSocialMedia.join(',') }
       const res = await apiClient.put('/profile', payload)
       dispatch(updateImage(form.merchantImage))
+      dispatch(setNeedsProfileCompletion(false))
       router.push('/merchant/dashboard')
       toast.success(res.data.msg)
     } catch {
