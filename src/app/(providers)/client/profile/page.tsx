@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { updateImage } from '@/store/slices/authSlice'
+import { setNeedsProfileCompletion, updateImage } from '@/store/slices/authSlice'
 import { useDispatch } from 'react-redux'
 
 export default function ClientProfilePage() {
@@ -97,6 +97,7 @@ export default function ClientProfilePage() {
       await apiClient.put('/profile', payload)
       // 提交成功后更新 Redux
       dispatch(updateImage(form.avatar))
+      dispatch(setNeedsProfileCompletion(false))
       router.push('/client/browse')
     } catch {
       setError('Update failed. Please check the input.')

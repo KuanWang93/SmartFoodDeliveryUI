@@ -20,6 +20,7 @@ export default function OrderSubmitPage() {
   const [showAddrModal, setShowAddrModal] = useState(false)
   const [deliveryFee, setDeliveryFee] = useState<number | null>(null)
   const [distance, setDistance] = useState<number | null>(null)
+  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const dispatch = useAppDispatch();
   
   useEffect(() => {
@@ -27,6 +28,22 @@ export default function OrderSubmitPage() {
     const defaultAddr = addressList.find(a => a.isDefault) || addressList[0]
     setSelectedAddressId(defaultAddr.addressId)
   }, [addressList])
+
+  useEffect(() => {
+    if (!merchant || !selectedAddressId) {
+      setEtaMinutes(null);
+      return;
+    }
+    apiClient
+      .get('/client/order/eta', {
+        params: {
+          merchantId: merchant.merchantId,
+          addressId: selectedAddressId,
+        },
+      })
+      .then(res => setEtaMinutes(res.data.data))
+      .catch(() => setEtaMinutes(null));
+  }, [merchant, selectedAddressId]);
 
   useEffect(() => {
     if (!merchant || !selectedAddressId) {
@@ -88,6 +105,10 @@ export default function OrderSubmitPage() {
       toast.error('超出配送范围，无法下单')
       return
     }
+    if (etaMinutes == null) {
+      toast.error('无法获取预计送达时间')
+      return
+    }  
     try {
       // 订单写库(写库时注意配送距离不要超过10km) 还需加入status等字段，并同步写库order_status_log
       const res = await apiClient.post('/client/order/submit', {
@@ -96,6 +117,7 @@ export default function OrderSubmitPage() {
         addressId: selectedAddressId,
         remark: orderRemark,
         deliveryFee,
+        etaMinutes,
       })
       const orderId = res.data.data.orderId;
       // 清空后端购物车
@@ -210,6 +232,13 @@ export default function OrderSubmitPage() {
             ${deliveryFee !== null ? (totalAmount + Number(deliveryFee)).toFixed(2) : totalAmount.toFixed(2)}
           </span>
         </div>
+      </div>
+      <div className="mb-4">
+        {etaMinutes !== null && (
+          <span className="text-green-600 font-semibold">
+            预计送达时间：{etaMinutes} 分钟
+          </span>
+        )}
       </div>
 
       {/* 3. 订单备注 */}

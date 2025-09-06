@@ -31,10 +31,15 @@ export default function MerchantDashboard() {
   const autoRejectedIds = useRef<Set<number>>(new Set());
 
   const lastMessage = useAppSelector(state => state.merchantWebSocket.lastMessage);
+  const processedMsgIds = useRef(new Set());
 
   useEffect(() => {
     if (!lastMessage) return;
     if ('type' in lastMessage && lastMessage.type === "NEW_ORDER") {
+      const uniqueKey = lastMessage.orderId || lastMessage.timestamp || JSON.stringify(lastMessage);
+      if (processedMsgIds.current.has(uniqueKey)) return;
+      processedMsgIds.current.add(uniqueKey);
+      
       toast.success("有新订单！");
       window.speechSynthesis.speak(new SpeechSynthesisUtterance("You have a new order, please handle it!"));
       fetchDashboardData();

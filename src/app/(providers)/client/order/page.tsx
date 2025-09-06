@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/services/apiClient';
 import toast from 'react-hot-toast';
-import { ConfirmModal } from '@/components/ConfirmModal';
 import { RejectReasonModal } from '@/components/RejectReasonModal';
 
 export type ClientOrderVO = {

@@ -66,7 +66,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     dispatch(logoutAction());
     dispatch(clearAddressList());
     dispatch(clearMerchant());
-    router.push("/auth/login?role=client");
+    router.push("/auth/login");
   };
 
   return (
