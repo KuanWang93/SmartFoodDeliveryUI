@@ -5,6 +5,7 @@ import apiClient from '../../../../services/apiClient'
 import toast from 'react-hot-toast'
 import { useDispatch } from 'react-redux'
 import { setNeedsProfileCompletion, updateImage } from '@/store/slices/authSlice'
+import Field from '@/components/Field'
 
 interface ProfileForm {
   username: string
@@ -267,23 +268,6 @@ export default function MerchantProfilePage() {
           </form>
         </div>
       </div>
-    </div>
-  )
-}
-
-// 通用 Field 组件
-interface FieldProps {
-  label: ReactNode
-  children: ReactNode
-  className?: string 
-}
-export function Field({ label, children, className = "" }: FieldProps) {
-  return (
-    <div className={className}>
-      <label className="block text-sm font-medium mb-1">
-        {label}
-      </label>
-      {children}
     </div>
   )
 }
