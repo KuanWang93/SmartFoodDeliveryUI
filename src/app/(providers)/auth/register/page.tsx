@@ -351,6 +351,10 @@ export default function RegisterPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="block font-semibold mb-1">Phone <span className="text-red-500">*</span></label>
+                  <input type="text" name="phone" value={form.phone} onChange={handleChange} required className="w-full p-3 border rounded-xl" />
+                </div>
+                <div>
                   <label className="block font-semibold mb-1">Avatar </label>
                   <input type="file" name="avatar" accept="image/*" onChange={handleFileChange} className="w-full p-3 border rounded-xl" />
                   <div className="mt-2 relative w-24 h-24">
